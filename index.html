@@ -154,7 +154,7 @@
 'use strict';
 // ------------------------------------------------------------------ מצב ושמירה מקומית
 var KEY = 'tazkorot-v1';
-var VERSION = '24.11.26-2204';                                   // מוחלף בזמן הפרסום, ונבדק מול version.txt
+var VERSION = '24.11.26-2210';                                   // מוחלף בזמן הפרסום, ונבדק מול version.txt
 var st = { items: {}, queue: [], v: 0, url: '' };
 try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) st = saved; } catch (e) {}
 var ui = { tab: 'open', q: '', online: null, busy: false, sheet: null };
@@ -274,8 +274,8 @@ function doAct(id, a, extra) {
   it = st.items[id];
   var msg = a === 'done' ? 'בוצע' : a === 'mail' ? 'נשלח למייל' : a === 'cal' ? 'נקבע ביומן ל' + fmt(args.start) :
     a === 'snooze' ? 'נדחה ל' + fmt(it.due) : a === 'restore' ? 'הוחזר, יקפוץ ' + fmt(it.due) : a === 'del' ? 'נמחק' : a === 'purge' ? 'נמחק מההיסטוריה' : 'עודכן';
-  if (it.repeat && it.status === 'open' && (a === 'done' || a === 'mail' || a === 'cal')) msg += ' · הבא: ' + fmt(it.due);
-  toast(msg + ': ' + text, a === 'purge' || a === 'edit' ? null : function () { act({ a: 'undo', id: id }); });
+  if (it.repeat && it.status === 'open' && a === 'done') msg += ' · הבא: ' + fmt(it.due);
+  toast(msg + ': ' + text, a === 'purge' || a === 'edit' || a === 'mail' || a === 'cal' ? null : function () { act({ a: 'undo', id: id }); });
 }
 var toastTimer;
 function toast(text, undo) {

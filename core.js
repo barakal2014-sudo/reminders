@@ -228,8 +228,12 @@ function applyAction(db, a) {
     it.prev = ''; it.updated = ts; it._d = true; return it;
   }
   if (a.a === 'edit') { it.text = a.text; it.updated = ts; it._d = true; return it; }
+  if (a.a === 'mail' || a.a === 'cal') {           // מייל / יומן: התזכורת נשארת פתוחה. רק "בוצע" מעביר להיסטוריה
+    if (it.status !== 'open') return null;
+    it.updated = ts; it._d = true; return it;
+  }
   var prev = { due: it.due, anchor: it.anchor, status: it.status, closedAt: it.closedAt };
-  if (a.a === 'done' || a.a === 'mail' || a.a === 'cal') {
+  if (a.a === 'done') {
     if (it.status !== 'open') return null;
     if (it.repeat) {
       var hid = it.id + '-' + ts.toString(36), h = {};
