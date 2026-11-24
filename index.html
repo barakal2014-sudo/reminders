@@ -1,0 +1,424 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>תזכורות</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="תזכורות">
+<meta name="theme-color" content="#F4F1EC">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --text: #1C1C1E; --sub: #8E8E93; --blue: #007AFF; --orange: #FF9F0A; --red: #FF3B30; --green: #34C759;
+    --glass: rgba(255, 255, 255, .62); --glass-strong: rgba(255, 255, 255, .82); --line: rgba(255, 255, 255, .75);
+    --shadow: 0 10px 30px rgba(60, 50, 30, .10), 0 1px 2px rgba(60, 50, 30, .06);
+    --st: env(safe-area-inset-top, 0px); --sb: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: 'Heebo', -apple-system, system-ui, sans-serif; color: var(--text); font-size: 16px;
+    background: #F4F1EC; overscroll-behavior-y: none; -webkit-user-select: none; user-select: none;
+  }
+  .bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: linear-gradient(180deg, #FBF7F0, #EEF1F7); }
+  .bg i { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .55; }
+  .bg i:nth-child(1) { width: 320px; height: 320px; background: #FFC46B; top: -90px; right: -80px; }
+  .bg i:nth-child(2) { width: 300px; height: 300px; background: #9CC5FF; top: 34%; left: -120px; }
+  .bg i:nth-child(3) { width: 280px; height: 280px; background: #FFB3A1; bottom: -80px; right: -60px; opacity: .4; }
+  .glass { background: var(--glass); -webkit-backdrop-filter: blur(26px) saturate(180%); backdrop-filter: blur(26px) saturate(180%); border: 1px solid var(--line); box-shadow: var(--shadow); }
+  button { font: inherit; color: inherit; border: 0; background: none; padding: 0; cursor: pointer; }
+  input, textarea { font: inherit; color: inherit; -webkit-user-select: text; user-select: text; }
+
+  /* ---------- כותרת */
+  header { position: sticky; top: 0; z-index: 5; padding: calc(var(--st) + 14px) 18px 10px; }
+  header::before { content: ''; position: absolute; inset: 0; z-index: -1; -webkit-backdrop-filter: blur(22px) saturate(160%); backdrop-filter: blur(22px) saturate(160%); background: rgba(246, 243, 238, .6); -webkit-mask-image: linear-gradient(#000 78%, transparent); mask-image: linear-gradient(#000 78%, transparent); }
+  .top { display: flex; align-items: center; gap: 10px; }
+  h1 { font-size: 32px; font-weight: 700; margin: 0; flex: 1; letter-spacing: -.3px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--sub); }
+  .dot.on { background: var(--green); } .dot.off { background: var(--orange); } .dot.err { background: var(--red); }
+  .icon-btn { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; }
+  .icon-btn svg { width: 20px; height: 20px; stroke: var(--text); fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .seg { display: flex; padding: 3px; border-radius: 13px; margin-top: 12px; position: relative; }
+  .seg button { flex: 1; height: 34px; border-radius: 10px; font-weight: 500; font-size: 15px; color: var(--sub); transition: .2s; }
+  .seg button.on { background: #fff; color: var(--text); box-shadow: 0 2px 8px rgba(0, 0, 0, .10); }
+  .seg b { font-weight: 600; margin-inline-start: 4px; font-size: 13px; color: var(--orange); }
+  .search { margin-top: 10px; display: flex; align-items: center; gap: 8px; height: 38px; border-radius: 12px; padding: 0 12px; }
+  .search svg { width: 16px; height: 16px; stroke: var(--sub); fill: none; stroke-width: 2; stroke-linecap: round; flex: none; }
+  .search input { flex: 1; border: 0; outline: 0; background: none; font-size: 16px; min-width: 0; }
+  .search input::placeholder, textarea::placeholder, .field::placeholder { color: #A6A6AC; }
+
+  /* ---------- רשימה */
+  main { padding: 4px 16px calc(var(--sb) + 110px); }
+  .group { font-size: 13px; font-weight: 600; color: var(--sub); margin: 18px 6px 8px; display: flex; align-items: center; gap: 6px; }
+  .group.now { color: var(--orange); }
+  .group.now::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--orange); animation: pulse 1.6s infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(255, 159, 10, .22); } }
+  .card { border-radius: 20px; padding: 14px 14px 14px 16px; margin-bottom: 10px; display: flex; gap: 12px; align-items: flex-start; transition: transform .15s, opacity .25s; }
+  .card:active { transform: scale(.985); }
+  .card.due { background: var(--glass-strong); border-color: rgba(255, 159, 10, .55); box-shadow: 0 12px 34px rgba(255, 159, 10, .22), 0 1px 2px rgba(60, 50, 30, .06); }
+  .check { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #C7C7CC; margin-top: 1px; display: grid; place-items: center; transition: .2s; }
+  .check svg { width: 14px; height: 14px; stroke: #fff; fill: none; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
+  .card.due .check { border-color: var(--orange); }
+  .card.bye { opacity: 0; transform: translateX(-30px); }
+  .card.bye .check { background: var(--green); border-color: var(--green); } .card.bye .check svg { opacity: 1; }
+  .body { flex: 1; min-width: 0; }
+  .t { font-size: 17px; font-weight: 500; line-height: 1.3; word-break: break-word; }
+  .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; font-size: 13px; color: var(--sub); align-items: center; }
+  .meta .late { color: var(--orange); font-weight: 600; }
+  .chip { background: rgba(0, 122, 255, .10); color: var(--blue); border-radius: 8px; padding: 1px 7px; font-size: 12px; font-weight: 500; }
+  .st { border-radius: 8px; padding: 1px 7px; font-size: 12px; font-weight: 500; background: rgba(120, 120, 128, .12); color: #636366; }
+  .row { display: flex; gap: 8px; margin-top: 12px; }
+  .row button { flex: 1; height: 40px; border-radius: 12px; font-weight: 600; font-size: 15px; }
+  .b-pri { background: var(--text); color: #fff; } .b-sec { background: rgba(120, 120, 128, .14); }
+  .b-blue { background: var(--blue); color: #fff; } .b-red { background: rgba(255, 59, 48, .12); color: var(--red); }
+  .empty { text-align: center; color: var(--sub); padding: 70px 20px; line-height: 1.6; }
+  .empty div { font-size: 46px; margin-bottom: 6px; }
+  .link { color: var(--blue); font-weight: 500; font-size: 14px; display: block; margin: 14px auto 0; }
+  .link.red { color: var(--red); }
+
+  /* ---------- כפתור הוספה */
+  .fab { position: fixed; z-index: 6; bottom: calc(var(--sb) + 22px); left: 50%; transform: translateX(-50%); height: 56px; padding: 0 26px 0 22px; border-radius: 28px; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 17px; color: #fff; background: linear-gradient(180deg, #FFB340, #FF9500); box-shadow: 0 12px 28px rgba(255, 149, 0, .42), inset 0 1px 0 rgba(255, 255, 255, .45); }
+  .fab:active { transform: translateX(-50%) scale(.96); }
+  .fab svg { width: 20px; height: 20px; stroke: #fff; fill: none; stroke-width: 2.6; stroke-linecap: round; }
+
+  /* ---------- גיליון תחתון */
+  .back { position: fixed; inset: 0; z-index: 10; background: rgba(30, 25, 15, .28); opacity: 0; pointer-events: none; transition: opacity .25s; }
+  .back.on { opacity: 1; pointer-events: auto; }
+  .sheet { position: fixed; z-index: 11; left: 0; right: 0; bottom: 0; max-height: 88%; overflow-y: auto; border-radius: 28px 28px 0 0; padding: 10px 18px calc(var(--sb) + 20px); transform: translateY(105%); transition: transform .32s cubic-bezier(.2, .9, .25, 1); background: rgba(250, 248, 244, .86); }
+  .sheet.on { transform: none; }
+  .grab { width: 38px; height: 5px; border-radius: 3px; background: rgba(60, 60, 67, .25); margin: 0 auto 14px; }
+  .sheet h2 { font-size: 20px; font-weight: 700; margin: 0 0 4px; }
+  .sheet .subt { color: var(--sub); font-size: 14px; margin-bottom: 14px; word-break: break-word; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .grid button { height: 48px; border-radius: 14px; background: #fff; font-weight: 500; font-size: 15px; box-shadow: 0 1px 3px rgba(0, 0, 0, .07); }
+  .grid button:active, .acts button:active { background: #EDEDF0; }
+  .grid button.sel { background: var(--text); color: #fff; }
+  .acts { border-radius: 16px; overflow: hidden; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .07); margin-top: 12px; }
+  .acts button { display: flex; width: 100%; align-items: center; gap: 12px; height: 52px; padding: 0 16px; font-size: 16px; font-weight: 500; text-align: start; }
+  .acts button + button { border-top: 1px solid rgba(60, 60, 67, .10); }
+  .acts .red { color: var(--red); }
+  .acts span { width: 24px; text-align: center; font-size: 18px; }
+  .field, textarea { width: 100%; border: 0; outline: 0; border-radius: 14px; background: #fff; padding: 13px 14px; font-size: 17px; box-shadow: 0 1px 3px rgba(0, 0, 0, .07); resize: none; }
+  .lbl { font-size: 13px; color: var(--sub); font-weight: 500; margin: 16px 4px 8px; }
+  .preview { margin: 10px 4px 0; font-size: 14px; color: var(--sub); min-height: 21px; }
+  .preview b { color: var(--text); font-weight: 600; }
+  .big { width: 100%; height: 52px; border-radius: 16px; font-weight: 600; font-size: 17px; margin-top: 16px; }
+  .big:disabled { opacity: .4; }
+  .hint { font-size: 13px; color: var(--sub); line-height: 1.55; margin: 10px 4px 0; }
+
+  /* ---------- הודעה צפה */
+  .toast { position: fixed; z-index: 20; left: 16px; right: 16px; bottom: calc(var(--sb) + 92px); border-radius: 16px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; background: rgba(28, 28, 30, .88); color: #fff; font-size: 15px; -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px); transform: translateY(30px); opacity: 0; pointer-events: none; transition: .25s; }
+  .toast.on { transform: none; opacity: 1; pointer-events: auto; }
+  .toast span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .toast button { color: #FFB340; font-weight: 600; flex: none; }
+</style>
+</head>
+<body>
+<div class="bg"><i></i><i></i><i></i></div>
+
+<header>
+  <div class="top">
+    <h1>תזכורות</h1>
+    <span class="dot" id="dot"></span>
+    <button class="icon-btn glass" id="gear" aria-label="הגדרות"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </div>
+  <div class="seg glass" id="seg">
+    <button data-tab="open" class="on">פתוחות<b id="cnt"></b></button>
+    <button data-tab="hist">היסטוריה</button>
+  </div>
+  <label class="search glass">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <input id="q" type="search" placeholder="חיפוש" autocomplete="off">
+  </label>
+</header>
+
+<main id="list"></main>
+
+<button class="fab" id="fab"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>תזכורת חדשה</button>
+
+<div class="back" id="back"></div>
+<div class="sheet glass" id="sheet"></div>
+<div class="toast" id="toast"><span></span><button>בטל</button></div>
+
+<script src="core.js"></script>
+<script>
+'use strict';
+// ------------------------------------------------------------------ מצב ושמירה מקומית
+var KEY = 'tazkorot-v1';
+var st = { items: {}, queue: [], v: 0, url: '' };
+try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) st = saved; } catch (e) {}
+var ui = { tab: 'open', q: '', online: null, busy: false, sheet: null };
+var $ = function (id) { return document.getElementById(id); };
+var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+function newId() { return Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36); }
+
+// ------------------------------------------------------------------ פעולות וסנכרון (אותו פרוטוקול כמו אפליקציית המחשב)
+function act(a, quiet) {
+  a.ts = a.ts || Date.now();
+  var r = applyAction(st.items, a);
+  if (!r) return null;
+  st.queue.push(a); save();
+  if (!quiet) { render(); sync(); }
+  return r;
+}
+
+function sync() {
+  if (!st.url || ui.busy) return;
+  ui.busy = true;
+  var sent = st.queue.slice();
+  fetch(st.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ src: 'app', v: st.v, actions: sent }) })
+    .then(function (r) { return r.json(); })
+    .then(function (resp) {
+      if (resp.err) { ui.online = 'err'; return; }
+      st.queue = st.queue.slice(sent.length);
+      if (!resp.same) {
+        var items = {};
+        (resp.items || []).forEach(function (x) { items[x.id] = x; });
+        st.items = items; st.v = resp.v;
+        st.queue.forEach(function (a) { applyAction(st.items, a); });     // מה שנעשה בינתיים נשאר
+      }
+      ui.online = true; save(); render();
+    })
+    .catch(function () { ui.online = false; })
+    .then(function () { ui.busy = false; dot(); if (st.queue.length && ui.online === true) sync(); });
+}
+function dot() { $('dot').className = 'dot ' + (!st.url ? '' : ui.online === true ? 'on' : ui.online === 'err' ? 'err' : ui.online === false ? 'off' : ''); }
+
+// ------------------------------------------------------------------ רשימה
+var ST_LABEL = { done: '✓ בוצע', mail: '📧 נשלח למייל', cal: '📅 נקבע ביומן', deleted: '🗑 נמחק' };
+function dayDiff(ms, now) { return Math.round((at(new Date(ms), 0).getTime() - at(new Date(now), 0).getTime()) / 864e5); }
+
+function render() {
+  var now = Date.now(), q = ui.q.trim(), arr = [], open = 0, h = '';
+  for (var id in st.items) {
+    var x = st.items[id];
+    if (x.status === 'open') open++;
+    if (x.status === 'purged' || (ui.tab === 'open') !== (x.status === 'open')) continue;
+    if (q && x.text.indexOf(q) < 0) continue;
+    arr.push(x);
+  }
+  $('cnt').textContent = open || '';
+  if (ui.tab === 'open') {
+    arr.sort(function (a, b) { return a.due - b.due; });
+    var last = '';
+    arr.forEach(function (x) {
+      var d = dayDiff(x.due, now), due = x.due <= now;
+      var g = due ? 'עכשיו' : d === 0 ? 'היום' : d === 1 ? 'מחר' : d < 7 ? 'השבוע' : 'בהמשך';
+      if (g !== last) { h += '<div class="group' + (due ? ' now' : '') + '">' + g + '</div>'; last = g; }
+      h += '<div class="card glass' + (due ? ' due' : '') + '" data-id="' + x.id + '">' +
+        '<button class="check" data-do="done" aria-label="בוצע"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>' +
+        '<div class="body"><div class="t">' + esc(x.text) + '</div><div class="meta">' +
+        '<span' + (due ? ' class="late"' : '') + '>' + fmt(x.due, now) + '</span>' +
+        (x.repeat ? '<span class="chip">🔁 ' + esc(fmtRepeat(x.repeat)) + '</span>' : '') + '</div>' +
+        (due ? '<div class="row"><button class="b-pri" data-do="done">בוצע</button><button class="b-sec" data-do="snooze">דחה</button></div>' : '') +
+        '</div></div>';
+    });
+    if (!arr.length) h = '<div class="empty"><div>' + (q ? '🔍' : '🎉') + '</div>' + (q ? 'לא נמצאו תזכורות' : 'אין תזכורות פתוחות<br>לחץ על "תזכורת חדשה" כדי להוסיף') + '</div>';
+  } else {
+    arr.sort(function (a, b) { return b.closedAt - a.closedAt; });
+    arr.forEach(function (x) {
+      h += '<div class="card glass" data-id="' + x.id + '"><div class="body"><div class="t">' + esc(x.text) + '</div><div class="meta">' +
+        '<span class="st">' + (ST_LABEL[x.status] || x.status) + '</span><span>' + fmt(x.closedAt || x.updated, now) + '</span></div></div></div>';
+    });
+    h = arr.length ? h + '<button class="link red" data-do="clear">נקה היסטוריה</button>'
+      : '<div class="empty"><div>🗂</div>' + (q ? 'לא נמצאו תזכורות' : 'ההיסטוריה ריקה') + '</div>';
+  }
+  $('list').innerHTML = h;
+  dot();
+}
+
+$('list').addEventListener('click', function (e) {
+  var b = e.target.closest('[data-do]'), card = e.target.closest('.card'), id = card && card.dataset.id;
+  if (b && b.dataset.do === 'clear') return sheetClear();
+  if (!id) return;
+  if (b && b.dataset.do === 'done') { card.classList.add('bye'); return setTimeout(function () { doAct(id, 'done'); }, 260); }
+  if (b && b.dataset.do === 'snooze') return sheetTime(id, 'snooze');
+  sheetItem(id);
+});
+$('seg').addEventListener('click', function (e) {
+  var b = e.target.closest('button'); if (!b) return;
+  ui.tab = b.dataset.tab;
+  [].forEach.call($('seg').children, function (c) { c.classList.toggle('on', c === b); });
+  window.scrollTo(0, 0); render();
+});
+$('q').addEventListener('input', function () { ui.q = this.value; render(); });
+
+// ------------------------------------------------------------------ ביצוע פעולה + הודעה עם "בטל"
+function doAct(id, a, extra) {
+  var it = st.items[id]; if (!it) return;
+  var text = it.text, args = { a: a, id: id };
+  for (var k in extra || {}) args[k] = extra[k];
+  if (!act(args)) return render();
+  it = st.items[id];
+  var msg = a === 'done' ? 'בוצע' : a === 'mail' ? 'נשלח למייל' : a === 'cal' ? 'נקבע ביומן ל' + fmt(args.start) :
+    a === 'snooze' ? 'נדחה ל' + fmt(it.due) : a === 'restore' ? 'הוחזר, יקפוץ ' + fmt(it.due) : a === 'del' ? 'נמחק' : a === 'purge' ? 'נמחק מההיסטוריה' : 'עודכן';
+  if (it.repeat && it.status === 'open' && (a === 'done' || a === 'mail' || a === 'cal')) msg += ' · הבא: ' + fmt(it.due);
+  toast(msg + ': ' + text, a === 'purge' || a === 'edit' ? null : function () { act({ a: 'undo', id: id }); });
+}
+var toastTimer;
+function toast(text, undo) {
+  var t = $('toast'); t.firstChild.textContent = text;
+  t.lastChild.style.display = undo ? '' : 'none';
+  t.lastChild.onclick = function () { t.classList.remove('on'); undo(); };
+  t.classList.add('on'); clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { t.classList.remove('on'); }, undo ? 6000 : 2600);
+}
+
+// ------------------------------------------------------------------ גיליונות
+function openSheet(html, wire) {
+  $('sheet').innerHTML = '<div class="grab"></div>' + html;
+  $('sheet').scrollTop = 0;
+  $('sheet').classList.add('on'); $('back').classList.add('on');
+  if (wire) wire($('sheet'));
+}
+function closeSheet() { $('sheet').classList.remove('on'); $('back').classList.remove('on'); if (document.activeElement) document.activeElement.blur(); }
+$('back').addEventListener('click', closeSheet);
+(function () {                                        // משיכה למטה סוגרת
+  var y0 = null, s = $('sheet');
+  s.addEventListener('touchstart', function (e) { y0 = s.scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
+  s.addEventListener('touchmove', function (e) { if (y0 !== null && e.touches[0].clientY - y0 > 90) { y0 = null; closeSheet(); } }, { passive: true });
+})();
+
+function sheetItem(id) {
+  var it = st.items[id]; if (!it) return;
+  var open = it.status === 'open';
+  var sub = open ? fmt(it.due) + (it.repeat ? ' · 🔁 ' + fmtRepeat(it.repeat) : '') : (ST_LABEL[it.status] || '') + ' · ' + fmt(it.closedAt || it.updated);
+  var acts = open
+    ? '<button data-a="done"><span>✅</span>בוצע</button><button data-a="snooze"><span>⏰</span>דחה למועד אחר</button>' +
+      '<button data-a="mail"><span>📧</span>שלח לי מייל</button><button data-a="cal"><span>📅</span>קבע ביומן</button>' +
+      '<button data-a="edit"><span>✏️</span>ערוך טקסט</button><button data-a="del" class="red"><span>🗑</span>מחק</button>'
+    : '<button data-a="restore"><span>↩️</span>החזר לרשימה</button><button data-a="purge" class="red"><span>🗑</span>מחק מההיסטוריה</button>';
+  openSheet('<h2>' + esc(it.text) + '</h2><div class="subt">' + esc(sub) + '</div><div class="acts">' + acts + '</div>', function (s) {
+    s.querySelector('.acts').onclick = function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      var a = b.dataset.a;
+      if (a === 'snooze' || a === 'cal' || a === 'restore') return sheetTime(id, a);
+      if (a === 'edit') return sheetEdit(id);
+      closeSheet(); doAct(id, a);
+    };
+  });
+}
+
+function sheetTime(id, mode) {
+  var it = st.items[id]; if (!it) return;
+  var keys = mode === 'cal' ? CAL_KEYS : mode === 'restore' ? [['now', 'עכשיו']].concat(SNOOZE_KEYS) : SNOOZE_KEYS;
+  var title = mode === 'cal' ? 'לקבוע ביומן למתי?' : mode === 'restore' ? 'להחזיר למתי?' : 'לדחות למתי?';
+  var h = '<h2>' + title + '</h2><div class="subt">' + esc(it.text) + '</div><div class="grid">' +
+    keys.map(function (k) { return '<button data-k="' + k[0] + '">' + esc(k[1].replace(/‏/g, '')) + '</button>'; }).join('') + '</div>' +
+    '<div class="lbl">או כתוב מועד</div><input class="field" id="free" placeholder="למשל: מחר ב-9, יום חמישי ב-16:30" enterkeyhint="done" autocomplete="off">' +
+    '<div class="preview" id="pv"></div><button class="big b-pri" id="ok" disabled>אישור</button>' +
+    (it.repeat && mode === 'snooze' ? '<div class="hint">זו תזכורת מחזורית. הדחייה חלה רק על הפעם הזו, והסדר הקבוע לא משתנה.</div>' : '');
+  openSheet(h, function (s) {
+    var apply = function (due) {
+      closeSheet();
+      if (mode === 'cal') doAct(id, 'cal', { start: due }); else doAct(id, mode, { due: due });
+    };
+    s.querySelector('.grid').onclick = function (e) { var b = e.target.closest('button'); if (b) apply(quick(b.dataset.k, Date.now())); };
+    var free = $('free'), pr = null;
+    free.oninput = function () {
+      pr = free.value.trim() ? parse(free.value, Date.now()) : null;
+      var ok = pr && pr.found;
+      $('pv').innerHTML = ok ? '🗓 <b>' + fmt(pr.due) + '</b>' : free.value.trim() ? 'לא זיהיתי מועד' : '';
+      $('ok').disabled = !ok;
+    };
+    free.onkeydown = function (e) { if (e.key === 'Enter' && pr && pr.found) apply(pr.due); };
+    $('ok').onclick = function () { if (pr && pr.found) apply(pr.due); };
+  });
+}
+
+function sheetEdit(id) {
+  var it = st.items[id]; if (!it) return;
+  openSheet('<h2>עריכת תזכורת</h2><div class="subt">' + esc(fmt(it.due)) + '</div><textarea id="ed" rows="3"></textarea><button class="big b-pri" id="ok">שמור</button>', function () {
+    $('ed').value = it.text;
+    $('ok').onclick = function () { var v = $('ed').value.trim(); closeSheet(); if (v && v !== it.text) doAct(id, 'edit', { text: v }); };
+  });
+}
+
+function sheetAdd() {
+  var h = '<h2>תזכורת חדשה</h2><div class="subt">כתוב או הכתב בשפה חופשית, כולל המועד</div>' +
+    '<textarea id="nt" rows="3" placeholder="מחר ב-9 להתקשר לספק" enterkeyhint="done"></textarea><div class="preview" id="pv"></div>' +
+    '<div class="lbl">מועד מהיר</div><div class="grid">' +
+    SNOOZE_KEYS.map(function (k) { return '<button data-k="' + k[0] + '">' + esc(k[1].replace(/‏/g, '')) + '</button>'; }).join('') + '</div>' +
+    '<button class="big b-blue" id="ok" disabled>הוסף</button>' +
+    '<div class="hint">דוגמאות: "בעוד שעתיים לבדוק מייל" · "כל יום ראשון ב-8:30 ישיבת צוות" · "כל 3 ימים להשקות" · "כל 1 לחודש דוח הוצאות"</div>';
+  openSheet(h, function (s) {
+    var nt = $('nt'), key = null, pr = null;
+    var upd = function () {
+      var v = nt.value.trim();
+      pr = v ? parse(v, Date.now()) : null;
+      if (pr && pr.found) key = null;
+      [].forEach.call(s.querySelectorAll('.grid button'), function (b) { b.classList.toggle('sel', b.dataset.k === key); });
+      $('ok').disabled = !v;
+      if (!v) return $('pv').innerHTML = '';
+      var due = key ? quick(key, Date.now()) : pr.due;
+      $('pv').innerHTML = '🗓 <b>' + fmt(due) + '</b>' + (pr.repeat ? ' · 🔁 <b>' + esc(fmtRepeat(pr.repeat)) + '</b>' : '') + (!pr.found && !key ? ' (לא כתבת מועד: בעוד שעה)' : '');
+    };
+    nt.oninput = upd;
+    s.querySelector('.grid').onclick = function (e) { var b = e.target.closest('button'); if (!b) return; key = key === b.dataset.k ? null : b.dataset.k; upd(); };
+    var go = function () {
+      if (!pr) return;
+      var due = key ? quick(key, Date.now()) : pr.due;
+      var it = act({ a: 'add', id: newId(), text: pr.text, due: due, repeat: pr.repeat });
+      closeSheet(); ui.tab = 'open'; [].forEach.call($('seg').children, function (c) { c.classList.toggle('on', c.dataset.tab === 'open'); }); render();
+      toast('נקבע ל' + fmt(it.due) + ': ' + it.text, function () { act({ a: 'del', id: it.id }); });
+    };
+    $('ok').onclick = go;
+    nt.onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); go(); } };
+    setTimeout(function () { nt.focus(); }, 60);
+  });
+}
+
+function sheetClear() {
+  var ids = Object.keys(st.items).filter(function (id) { var s = st.items[id].status; return s !== 'open' && s !== 'purged'; });
+  openSheet('<h2>לנקות את ההיסטוריה?</h2><div class="subt">' + ids.length + ' תזכורות סגורות יימחקו לצמיתות. תזכורות פתוחות לא יושפעו.</div>' +
+    '<button class="big b-red" id="ok">מחק הכול</button><button class="big b-sec" id="no">ביטול</button>', function () {
+    $('no').onclick = closeSheet;
+    $('ok').onclick = function () { ids.forEach(function (id) { act({ a: 'purge', id: id }, true); }); closeSheet(); render(); sync(); toast('ההיסטוריה נוקתה'); };
+  });
+}
+
+function sheetSettings() {
+  var state = !st.url ? 'מצב מקומי: התזכורות נשמרות רק במכשיר הזה' : ui.online === true ? 'מחובר ומסונכרן' : ui.online === 'err' ? 'קוד החיבור שגוי' : 'אין חיבור כרגע, עובד מקומית';
+  var standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  openSheet('<h2>הגדרות</h2><div class="subt">' + state + (st.queue.length ? ' · ' + st.queue.length + ' שינויים ממתינים' : '') + '</div>' +
+    '<div class="lbl">קוד חיבור (אותו קוד כמו במחשב)</div><input class="field" id="url" dir="ltr" type="url" placeholder="https://script.google.com/..." autocomplete="off" autocapitalize="off">' +
+    '<button class="big b-pri" id="ok">שמור וסנכרן</button>' +
+    (standalone ? '' : '<div class="hint"><b>התקנה במסך הבית:</b> בספארי, לחץ על כפתור השיתוף ואז "הוסף למסך הבית". כך האפליקציה נפתחת במסך מלא, כמו אפליקציה רגילה.</div>'), function () {
+    $('url').value = st.url || '';
+    $('ok').onclick = function () {
+      var u = $('url').value.trim();
+      if (u && !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec\?k=\w+$/.test(u)) return toast('הקוד צריך להתחיל ב-https://script.google.com/ ולהסתיים ב-k=...');
+      st.url = u; st.v = 0; ui.online = null; save(); closeSheet(); dot();
+      if (u) { toast('נשמר. מסנכרן...'); sync(); }
+    };
+  });
+}
+
+$('fab').addEventListener('click', sheetAdd);
+$('gear').addEventListener('click', sheetSettings);
+
+// ------------------------------------------------------------------ הפעלה
+render();
+sync();
+setInterval(function () { if (!document.hidden) { sync(); if (!$('sheet').classList.contains('on')) render(); } }, 20000);
+document.addEventListener('visibilitychange', function () { if (!document.hidden) { render(); sync(); } });
+window.addEventListener('online', sync);
+(function () {
+  var p = new URLSearchParams(location.search);
+  if (p.get('add')) sheetAdd();
+  else if (p.get('id') && st.items[p.get('id')]) sheetItem(p.get('id'));
+  if (p.toString()) history.replaceState(null, '', location.pathname);
+})();
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
