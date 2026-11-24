@@ -154,6 +154,7 @@
 'use strict';
 // ------------------------------------------------------------------ מצב ושמירה מקומית
 var KEY = 'tazkorot-v1';
+var VERSION = '24.11.26-2204';                                   // מוחלף בזמן הפרסום, ונבדק מול version.txt
 var st = { items: {}, queue: [], v: 0, url: '' };
 try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) st = saved; } catch (e) {}
 var ui = { tab: 'open', q: '', online: null, busy: false, sheet: null };
@@ -410,8 +411,10 @@ function sheetSettings() {
       '<button id="nNag"><span>🔁</span><i id="nNagT" style="font-style:normal">הזכר שוב עד לביצוע: בודק...</i></button>' +
       '<button id="nTg"><span>✈️</span><i id="nTgT" style="font-style:normal">התראות בטלגרם: בודק...</i></button></div>' +
       '<div class="hint" id="nHint"></div>' : '') +
+    '<button class="link" id="rf">רענן את האפליקציה</button><div class="hint" style="text-align:center">גרסה ' + VERSION + '</div>' +
     (standalone ? '' : '<div class="hint"><b>התקנה במסך הבית:</b> בספארי, לחץ על כפתור השיתוף ואז "הוסף למסך הבית". כך האפליקציה נפתחת במסך מלא, כמו אפליקציה רגילה.</div>'), function () {
     $('url').value = st.url || '';
+    $('rf').onclick = refreshApp;
     if (st.url) wireNotify(standalone);
     $('ok').onclick = function () {
       var u = $('url').value.trim();
@@ -458,11 +461,28 @@ function wireNotify(standalone) {
 $('fab').addEventListener('click', sheetAdd);
 $('gear').addEventListener('click', sheetSettings);
 
+// ------------------------------------------------------------------ עדכון עצמי
+function refreshApp() {
+  var go = function () { location.reload(); };
+  if (navigator.serviceWorker && navigator.serviceWorker.getRegistration) navigator.serviceWorker.getRegistration().then(function (r) { return r && r.update(); }).catch(function () {}).then(go);
+  else go();
+}
+function checkUpdate() {
+  if (VERSION === 'dev') return;
+  fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
+    v = v.trim();
+    if (!v || v === VERSION || $('sheet').classList.contains('on')) return;
+    try { if (sessionStorage.getItem('upd') === v) return; sessionStorage.setItem('upd', v); } catch (e) {}   // לא לנסות שוב ושוב את אותה גרסה
+    refreshApp();
+  }).catch(function () {});
+}
+
 // ------------------------------------------------------------------ הפעלה
 render();
 sync();
 setInterval(function () { if (!document.hidden) { sync(); if (!$('sheet').classList.contains('on')) render(); } }, 20000);
-document.addEventListener('visibilitychange', function () { if (!document.hidden) { render(); sync(); } });
+document.addEventListener('visibilitychange', function () { if (!document.hidden) { render(); sync(); checkUpdate(); } });
+checkUpdate();
 window.addEventListener('online', sync);
 (function () {
   var p = new URLSearchParams(location.search);
