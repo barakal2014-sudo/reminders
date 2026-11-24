@@ -77,6 +77,7 @@
   .st { border-radius: 8px; padding: 1px 7px; font-size: 12px; font-weight: 500; background: rgba(120, 120, 128, .12); color: #636366; }
   .row { display: flex; gap: 8px; margin-top: 12px; }
   .row button { flex: 1; height: 40px; border-radius: 12px; font-weight: 600; font-size: 15px; }
+  .row2 { margin-top: 8px; } .row2 button { height: 36px; font-size: 14px; font-weight: 500; }
   .b-pri { background: var(--text); color: #fff; } .b-sec { background: rgba(120, 120, 128, .14); }
   .b-blue { background: var(--blue); color: #fff; } .b-red { background: rgba(255, 59, 48, .12); color: var(--red); }
   .empty { text-align: center; color: var(--sub); padding: 70px 20px; line-height: 1.6; }
@@ -224,7 +225,8 @@ function render() {
         '<div class="body"><div class="t">' + esc(x.text) + '</div><div class="meta">' +
         '<span' + (due ? ' class="late"' : '') + '>' + fmt(x.due, now) + '</span>' +
         (x.repeat ? '<span class="chip">🔁 ' + esc(fmtRepeat(x.repeat)) + '</span>' : '') + '</div>' +
-        (due ? '<div class="row"><button class="b-pri" data-do="done">בוצע</button><button class="b-sec" data-do="snooze">דחה</button></div>' : '') +
+        (due ? '<div class="row"><button class="b-pri" data-do="done">בוצע</button><button class="b-sec" data-do="snooze">דחה</button></div>' +
+          '<div class="row row2"><button class="b-sec" data-do="mail">📧 שלח לי מייל</button><button class="b-sec" data-do="cal">📅 קבע ביומן</button></div>' : '') +
         '</div></div>';
     });
     if (!arr.length) h = '<div class="empty"><div>' + (q ? '🔍' : '🎉') + '</div>' + (q ? 'לא נמצאו תזכורות' : 'אין תזכורות פתוחות<br>לחץ על "תזכורת חדשה" כדי להוסיף') + '</div>';
@@ -250,6 +252,8 @@ $('list').addEventListener('click', function (e) {
   if (!id) return;
   if (b && b.dataset.do === 'done') { card.classList.add('bye'); return setTimeout(function () { doAct(id, 'done'); }, 260); }
   if (b && b.dataset.do === 'snooze') return sheetTime(id, 'snooze');
+  if (b && b.dataset.do === 'cal') return sheetTime(id, 'cal');
+  if (b && b.dataset.do === 'mail') return doAct(id, 'mail');
   sheetItem(id);
 });
 $('seg').addEventListener('click', function (e) {
