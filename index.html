@@ -403,6 +403,7 @@ function sheetSettings() {
     (st.url ? '<div class="lbl">התראות</div><div class="acts" style="margin-top:0">' +
       '<button id="nOn"><span>🔔</span>הפעל התראות במכשיר הזה</button>' +
       '<button id="nTest"><span>📨</span>שלח התראת בדיקה</button>' +
+      '<button id="nNag"><span>🔁</span><i id="nNagT" style="font-style:normal">הזכר שוב עד לביצוע: בודק...</i></button>' +
       '<button id="nTg"><span>✈️</span><i id="nTgT" style="font-style:normal">התראות בטלגרם: בודק...</i></button></div>' +
       '<div class="hint" id="nHint"></div>' : '') +
     (standalone ? '' : '<div class="hint"><b>התקנה במסך הבית:</b> בספארי, לחץ על כפתור השיתוף ואז "הוסף למסך הבית". כך האפליקציה נפתחת במסך מלא, כמו אפליקציה רגילה.</div>'), function () {
@@ -420,7 +421,12 @@ function sheetSettings() {
 function wireNotify(standalone) {
   var hint = function (t) { if ($('nHint')) $('nHint').textContent = t; };
   var tgOn = true, showTg = function () { if ($('nTgT')) $('nTgT').textContent = 'התראות בטלגרם: ' + (tgOn ? 'פועלות (לחץ לכיבוי)' : 'כבויות (לחץ להפעלה)'); };
-  api('info').then(function (r) { tgOn = r.tg; showTg(); if (!r.subs) hint('עדיין לא הופעלו התראות מהאפליקציה באף מכשיר.'); }).catch(function () { hint('אין חיבור לשרת כרגע.'); });
+  var nag = 30, showNag = function () { if ($('nNagT')) $('nNagT').textContent = 'הזכר שוב עד לביצוע: ' + (nag ? 'כל ' + nag + ' דקות' : 'כבוי') + ' (לחץ לשינוי)'; };
+  $('nNag').onclick = function () {
+    var opts = [0, 10, 30, 60], nx = opts[(opts.indexOf(nag) + 1) % opts.length];
+    api('nag', { min: nx }).then(function (r) { nag = r.nag; showNag(); }).catch(function () { hint('אין חיבור לשרת כרגע.'); });
+  };
+  api('info').then(function (r) { tgOn = r.tg; showTg(); nag = r.nag; showNag(); if (!r.subs) hint('עדיין לא הופעלו התראות מהאפליקציה באף מכשיר.'); }).catch(function () { hint('אין חיבור לשרת כרגע.'); });
   $('nOn').onclick = function () {
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !window.Notification)
       return hint(standalone ? 'המכשיר הזה לא תומך בהתראות מאפליקציה מסוג זה (נדרש iOS 16.4 ומעלה).' : 'כדי להפעיל התראות צריך קודם להוסיף את האפליקציה למסך הבית, ולפתוח אותה משם.');
