@@ -159,6 +159,11 @@ var ui = { tab: 'open', q: '', online: null, busy: false, sheet: null };
 var $ = function (id) { return document.getElementById(id); };
 var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
 function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+function shareUrl() { if (window.caches) caches.open('tazkorot-cfg').then(function (c) { return c.put('url', new Response(st.url || '')); }).catch(function () {}); }
+function api(op, extra) {                            // פעולות שאינן סנכרון: התראות, בדיקה, טלגרם
+  var body = { src: 'app', op: op }; for (var k in extra || {}) body[k] = extra[k];
+  return fetch(st.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) }).then(function (r) { return r.json(); });
+}
 function newId() { return Date.now().toString(36) + Math.floor(Math.random() * 1296).toString(36); }
 
 // ------------------------------------------------------------------ פעולות וסנכרון (אותו פרוטוקול כמו אפליקציית המחשב)
@@ -234,6 +239,9 @@ function render() {
   }
   $('list').innerHTML = h;
   dot();
+  var dueN = 0; for (var k in st.items) if (st.items[k].status === 'open' && st.items[k].due <= now) dueN++;
+  try { if (navigator.setAppBadge) { if (dueN) navigator.setAppBadge(dueN); else navigator.clearAppBadge(); } } catch (e) {}
+  if (ui.pending && st.items[ui.pending]) { var pid = ui.pending; ui.pending = null; sheetItem(pid); }
 }
 
 $('list').addEventListener('click', function (e) {
@@ -392,15 +400,49 @@ function sheetSettings() {
   openSheet('<h2>הגדרות</h2><div class="subt">' + state + (st.queue.length ? ' · ' + st.queue.length + ' שינויים ממתינים' : '') + '</div>' +
     '<div class="lbl">קוד חיבור (אותו קוד כמו במחשב)</div><input class="field" id="url" dir="ltr" type="url" placeholder="https://script.google.com/..." autocomplete="off" autocapitalize="off">' +
     '<button class="big b-pri" id="ok">שמור וסנכרן</button>' +
+    (st.url ? '<div class="lbl">התראות</div><div class="acts" style="margin-top:0">' +
+      '<button id="nOn"><span>🔔</span>הפעל התראות במכשיר הזה</button>' +
+      '<button id="nTest"><span>📨</span>שלח התראת בדיקה</button>' +
+      '<button id="nTg"><span>✈️</span><i id="nTgT" style="font-style:normal">התראות בטלגרם: בודק...</i></button></div>' +
+      '<div class="hint" id="nHint"></div>' : '') +
     (standalone ? '' : '<div class="hint"><b>התקנה במסך הבית:</b> בספארי, לחץ על כפתור השיתוף ואז "הוסף למסך הבית". כך האפליקציה נפתחת במסך מלא, כמו אפליקציה רגילה.</div>'), function () {
     $('url').value = st.url || '';
+    if (st.url) wireNotify(standalone);
     $('ok').onclick = function () {
       var u = $('url').value.trim();
       if (u && !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec\?k=\w+$/.test(u)) return toast('הקוד צריך להתחיל ב-https://script.google.com/ ולהסתיים ב-k=...');
-      st.url = u; st.v = 0; ui.online = null; save(); closeSheet(); dot();
+      st.url = u; st.v = 0; ui.online = null; save(); shareUrl(); closeSheet(); dot();
       if (u) { toast('נשמר. מסנכרן...'); sync(); }
     };
   });
+}
+
+function wireNotify(standalone) {
+  var hint = function (t) { if ($('nHint')) $('nHint').textContent = t; };
+  var tgOn = true, showTg = function () { if ($('nTgT')) $('nTgT').textContent = 'התראות בטלגרם: ' + (tgOn ? 'פועלות (לחץ לכיבוי)' : 'כבויות (לחץ להפעלה)'); };
+  api('info').then(function (r) { tgOn = r.tg; showTg(); if (!r.subs) hint('עדיין לא הופעלו התראות מהאפליקציה באף מכשיר.'); }).catch(function () { hint('אין חיבור לשרת כרגע.'); });
+  $('nOn').onclick = function () {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !window.Notification)
+      return hint(standalone ? 'המכשיר הזה לא תומך בהתראות מאפליקציה מסוג זה (נדרש iOS 16.4 ומעלה).' : 'כדי להפעיל התראות צריך קודם להוסיף את האפליקציה למסך הבית, ולפתוח אותה משם.');
+    hint('מבקש אישור...');
+    Notification.requestPermission().then(function (p) {
+      if (p !== 'granted') throw new Error('לא אישרת התראות. אפשר לשנות בהגדרות האייפון, תחת התראות > תזכורות.');
+      return Promise.all([navigator.serviceWorker.ready, api('info')]);
+    }).then(function (a) {
+      var raw = atob(a[1].pub.replace(/-/g, '+').replace(/_/g, '/')), key = new Uint8Array(raw.length);
+      for (var i = 0; i < raw.length; i++) key[i] = raw.charCodeAt(i);
+      return a[0].pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key });
+    }).then(function (sub) { return api('sub', { endpoint: sub.endpoint, origin: location.origin }); })
+      .then(function (r) { if (!r.ok) throw new Error(r.msg || 'השרת דחה את הרישום'); shareUrl(); return api('test'); })
+      .then(function (r) { hint('ההתראות הופעלו. נשלחה התראת בדיקה (תשובת שירות ההתראות: ' + (r.push || []).join(', ') + '). אם היא הגיעה, אפשר לכבות את טלגרם.'); })
+      .catch(function (e) { hint('לא הצלחתי להפעיל התראות: ' + (e && e.message || e)); });
+  };
+  $('nTest').onclick = function () {
+    hint('שולח...');
+    api('test').then(function (r) { hint(r.subs ? 'נשלחה התראת בדיקה (תשובה: ' + (r.push || []).join(', ') + '). היא אמורה להגיע תוך כמה שניות.' : 'אין מכשיר רשום. לחץ קודם על "הפעל התראות".'); })
+      .catch(function () { hint('אין חיבור לשרת כרגע.'); });
+  };
+  $('nTg').onclick = function () { api('tg', { on: !tgOn }).then(function (r) { tgOn = r.tg; showTg(); }).catch(function () { hint('אין חיבור לשרת כרגע.'); }); };
 }
 
 $('fab').addEventListener('click', sheetAdd);
@@ -415,10 +457,16 @@ window.addEventListener('online', sync);
 (function () {
   var p = new URLSearchParams(location.search);
   if (p.get('add')) sheetAdd();
-  else if (p.get('id') && st.items[p.get('id')]) sheetItem(p.get('id'));
+  else if (p.get('id')) { ui.pending = p.get('id'); render(); }      // נפתח מהתראה: מציג את התזכורת (אחרי סנכרון, אם צריך)
   if (p.toString()) history.replaceState(null, '', location.pathname);
 })();
-if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js');
+shareUrl();
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  navigator.serviceWorker.register('sw.js');
+  navigator.serviceWorker.addEventListener('message', function (e) {
+    if (e.data && e.data.open) { closeSheet(); ui.pending = e.data.open; render(); sync(); }
+  });
+}
 </script>
 </body>
 </html>
