@@ -154,7 +154,7 @@
 'use strict';
 // ------------------------------------------------------------------ מצב ושמירה מקומית
 var KEY = 'tazkorot-v1';
-var VERSION = '24.11.26-2210';                                   // מוחלף בזמן הפרסום, ונבדק מול version.txt
+var VERSION = '25.11.26-0707';                                   // מוחלף בזמן הפרסום, ונבדק מול version.txt
 var st = { items: {}, queue: [], v: 0, url: '' };
 try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) st = saved; } catch (e) {}
 var ui = { tab: 'open', q: '', online: null, busy: false, sheet: null };
@@ -368,19 +368,21 @@ function sheetAdd() {
     var upd = function () {
       var v = nt.value.trim();
       pr = v ? parse(v, Date.now()) : null;
-      if (pr && pr.found) key = null;
       [].forEach.call(s.querySelectorAll('.grid button'), function (b) { b.classList.toggle('sel', b.dataset.k === key); });
       $('ok').disabled = !v;
       if (!v) return $('pv').innerHTML = '';
       var due = key ? quick(key, Date.now()) : pr.due;
-      $('pv').innerHTML = '🗓 <b>' + fmt(due) + '</b>' + (pr.repeat ? ' · 🔁 <b>' + esc(fmtRepeat(pr.repeat)) + '</b>' : '') + (!pr.found && !key ? ' (לא כתבת מועד: בעוד שעה)' : '');
+      $('pv').innerHTML = '🗓 <b>' + fmt(due) + '</b>' + (pr.repeat ? ' · 🔁 <b>' + esc(fmtRepeat(pr.repeat)) + '</b>' : '') + (!pr.found && !key ? ' (לא כתבת מועד: בעוד שעה)' : '') +
+        (key && pr.found && !pr.repeat ? '<br>לפי הכפתור שבחרת. הטקסט נשמר כמו שכתבת' : '');
     };
     nt.oninput = upd;
     s.querySelector('.grid').onclick = function (e) { var b = e.target.closest('button'); if (!b) return; key = key === b.dataset.k ? null : b.dataset.k; upd(); };
     var go = function () {
       if (!pr) return;
       var due = key ? quick(key, Date.now()) : pr.due;
-      var it = act({ a: 'add', id: newId(), text: pr.text, due: due, repeat: pr.repeat });
+      var plain = key && !pr.repeat;              // בחרת כפתור: הוא המועד, והטקסט נשמר כמו שכתבת
+      var text = plain ? nt.value.replace(/\s+/g, ' ').trim().replace(/[\s.,!?;:]+$/, '') : pr.text;
+      var it = act({ a: 'add', id: newId(), text: text || pr.text, due: due, repeat: plain ? '' : pr.repeat });
       closeSheet(); ui.tab = 'open'; [].forEach.call($('seg').children, function (c) { c.classList.toggle('on', c.dataset.tab === 'open'); }); render();
       toast('נקבע ל' + fmt(it.due) + ': ' + it.text, function () { act({ a: 'del', id: it.id }); });
     };

@@ -36,11 +36,12 @@ function quick(key, now) {
     case 't16': t = at(n, 16); return (t.getTime() <= now ? addDays(t, 1) : t).getTime();
     case 'tom9': return at(addDays(n, 1), 9).getTime();
     case 'tom14': return at(addDays(n, 1), 14).getTime();
+    case 'tom19': return at(addDays(n, 1), 19).getTime();
     case 'sun9': return at(addDays(n, ((7 - n.getDay()) % 7) || 7), 9).getTime();
   }
   return now;
 }
-var SNOOZE_KEYS = [['m1', 'דקה'], ['m5', '‏5 דקות'], ['m10', '‏10 דקות'], ['m30', '‏30 דקות'], ['h1', 'שעה'], ['h3', '‏3 שעות'], ['eve', 'הערב 20:00'], ['tom', 'מחר 7:00'], ['wk', 'בעוד שבוע']];
+var SNOOZE_KEYS = [['m1', 'דקה'], ['m5', '‏5 דקות'], ['m10', '‏10 דקות'], ['m30', '‏30 דקות'], ['h1', 'שעה'], ['h3', '‏3 שעות'], ['eve', 'הערב 20:00'], ['tom', 'מחר 7:00'], ['tom14', 'מחר 14:00'], ['tom19', 'מחר 19:00'], ['wk', 'בעוד שבוע']];
 var CAL_KEYS = [['c1', 'בעוד שעה'], ['t16', '‏16:00'], ['tom9', 'מחר 9:00'], ['tom14', 'מחר 14:00'], ['sun9', "יום א' 9:00"]];
 
 function nextOcc(anchor, repeat, after) {
@@ -105,6 +106,9 @@ function parse(raw, now) {
   s = s.replace(/ (?:בכל|מדי) /g, ' כל ').replace(/ ב ?-? ?(\d)/g, ' ב-$1');
   var cut = function (re) { var m = s.match(re); if (m) s = s.replace(m[0], ' '); return m; };
   var DAYRE = '(?:שלישי|שישי|ראשון|רביעי|חמישי|שבת|שני)';
+  var keep = [];   // "לדבר עם אברהם על מחר": מחר הוא הנושא, לא המועד
+  s = s.replace(new RegExp(' (?:על |לגבי |של |בנוגע ל|בקשר ל)(?:מחרתיים|מחר|היום|הערב|השבוע|(?:יום )?' + DAYRE + ')(?= )', 'g'),
+    function (w) { keep.push(w.trim()); return ' \u0001' + (keep.length - 1) + '\u0001'; });
   var repeat = '', date = null, wd = null, hour = null, minute = 0, rel = null, relMonths = 0, m;
   var n = new Date(now);
 
@@ -207,6 +211,7 @@ function parse(raw, now) {
   if (/^nm:\d+$/.test(repeat)) repeat += ':' + new Date(due).getDate();
 
   var text = s.replace(/\s+/g, ' ').trim().replace(/^[\-,:.]+\s*/, '').replace(/\s*[\-,:]+$/, '');
+  text = text.replace(/\u0001(\d+)\u0001/g, function (x, i) { return keep[Number(i)]; });
   return { text: text || 'תזכורת', due: due, repeat: repeat, found: found };
 }
 
