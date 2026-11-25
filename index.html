@@ -111,6 +111,8 @@
   .shead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
   .shead h2 { margin: 0; }
   .savetop { height: 38px; padding: 0 20px; border-radius: 19px; font-weight: 600; font-size: 16px; color: #fff; background: linear-gradient(180deg, #3D9BFF, #007AFF); box-shadow: 0 4px 12px rgba(0, 122, 255, .3); }
+  .sbtns { display: flex; gap: 8px; flex: none; }
+  .canceltop { height: 38px; padding: 0 16px; border-radius: 19px; font-weight: 500; font-size: 16px; color: var(--sub); background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .07); }
   .savetop:disabled { opacity: .35; box-shadow: none; }
   .picks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .pick { position: relative; height: 52px; border-radius: 14px; background: #fff; display: flex; align-items: center; gap: 10px; padding: 0 14px; font-size: 16px; box-shadow: 0 1px 3px rgba(0, 0, 0, .07); overflow: hidden; }
@@ -166,7 +168,7 @@
 'use strict';
 // ------------------------------------------------------------------ מצב ושמירה מקומית
 var KEY = 'tazkorot-v1';
-var VERSION = '25.11.26-1142';                                   // מוחלף בזמן הפרסום, ונבדק מול version.txt
+var VERSION = '25.11.26-1147';                                   // מוחלף בזמן הפרסום, ונבדק מול version.txt
 var st = { items: {}, queue: [], v: 0, url: '' };
 try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) st = saved; } catch (e) {}
 var ui = { tab: 'open', q: '', online: null, busy: false, sheet: null };
@@ -384,7 +386,7 @@ function sheetEdit(id) {
 }
 
 function sheetAdd() {
-  var h = '<div class="shead"><h2>תזכורת חדשה</h2><button class="savetop" id="okTop" disabled>שמור</button></div>' +
+  var h = '<div class="shead"><h2>תזכורת חדשה</h2><span class="sbtns"><button class="canceltop" id="noTop">ביטול</button><button class="savetop" id="okTop" disabled>שמור</button></span></div>' +
     '<textarea id="nt" rows="3" placeholder="מה להזכיר? אפשר גם לכתוב מועד: מחר ב-9 להתקשר לספק" enterkeyhint="done"></textarea><div class="preview" id="pv"></div>' +
     '<div class="lbl">תאריך ושעה</div><div class="picks">' +
     '<label class="pick" id="dBox"><i>📅</i><b id="dTxt">תאריך</b><input type="date" id="dIn"></label>' +
@@ -437,7 +439,7 @@ function sheetAdd() {
       closeSheet(); ui.tab = 'open'; [].forEach.call($('seg').children, function (c) { c.classList.toggle('on', c.dataset.tab === 'open'); }); render();
       toast('נקבע ל' + fmt(it.due) + ': ' + it.text, function () { act({ a: 'del', id: it.id }); });
     };
-    $('ok').onclick = go; $('okTop').onclick = go;
+    $('ok').onclick = go; $('okTop').onclick = go; $('noTop').onclick = closeSheet;
     nt.onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); go(); } };
     setTimeout(function () { nt.focus(); }, 60);
   });
