@@ -154,7 +154,7 @@
 'use strict';
 // ------------------------------------------------------------------ מצב ושמירה מקומית
 var KEY = 'tazkorot-v1';
-var VERSION = '25.11.26-0707';                                   // מוחלף בזמן הפרסום, ונבדק מול version.txt
+var VERSION = '25.11.26-0817';                                   // מוחלף בזמן הפרסום, ונבדק מול version.txt
 var st = { items: {}, queue: [], v: 0, url: '' };
 try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) st = saved; } catch (e) {}
 var ui = { tab: 'open', q: '', online: null, busy: false, sheet: null };
@@ -204,6 +204,20 @@ function dot() { $('dot').className = 'dot ' + (!st.url ? '' : ui.online === tru
 var ST_LABEL = { done: '✓ בוצע', mail: '📧 נשלח למייל', cal: '📅 נקבע ביומן', deleted: '🗑 נמחק' };
 function dayDiff(ms, now) { return Math.round((at(new Date(ms), 0).getTime() - at(new Date(now), 0).getTime()) / 864e5); }
 
+// התראה של תזכורת שסומנה כבוצע (או נדחתה / נמחקה) נעלמת ממסך הנעילה ומרכז ההתראות
+function clearNotes(now, dueN) {
+  if (!navigator.serviceWorker || !navigator.serviceWorker.getRegistration) return;
+  navigator.serviceWorker.getRegistration().then(function (r) {
+    if (!r || !r.getNotifications) return;
+    return r.getNotifications().then(function (ns) {
+      ns.forEach(function (n) {
+        var id = n.data && n.data.id, x = id && st.items[id];
+        if (id ? x && !(x.status === 'open' && x.due <= now) : !dueN && ui.online === true) n.close();
+      });
+    });
+  }).catch(function () {});
+}
+
 function render() {
   var now = Date.now(), q = ui.q.trim(), arr = [], open = 0, h = '';
   for (var id in st.items) {
@@ -244,6 +258,7 @@ function render() {
   dot();
   var dueN = 0; for (var k in st.items) if (st.items[k].status === 'open' && st.items[k].due <= now) dueN++;
   try { if (navigator.setAppBadge) { if (dueN) navigator.setAppBadge(dueN); else navigator.clearAppBadge(); } } catch (e) {}
+  clearNotes(now, dueN);
   if (ui.pending && st.items[ui.pending]) { var pid = ui.pending; ui.pending = null; sheetItem(pid); }
 }
 
