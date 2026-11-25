@@ -108,6 +108,18 @@
   .acts .red { color: var(--red); }
   .acts span { width: 24px; text-align: center; font-size: 18px; }
   .field, textarea { width: 100%; border: 0; outline: 0; border-radius: 14px; background: #fff; padding: 13px 14px; font-size: 17px; box-shadow: 0 1px 3px rgba(0, 0, 0, .07); resize: none; }
+  .shead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+  .shead h2 { margin: 0; }
+  .savetop { height: 38px; padding: 0 20px; border-radius: 19px; font-weight: 600; font-size: 16px; color: #fff; background: linear-gradient(180deg, #3D9BFF, #007AFF); box-shadow: 0 4px 12px rgba(0, 122, 255, .3); }
+  .savetop:disabled { opacity: .35; box-shadow: none; }
+  .picks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .pick { position: relative; height: 52px; border-radius: 14px; background: #fff; display: flex; align-items: center; gap: 10px; padding: 0 14px; font-size: 16px; box-shadow: 0 1px 3px rgba(0, 0, 0, .07); overflow: hidden; }
+  .pick i { font-style: normal; font-size: 19px; }
+  .pick b { font-weight: 500; color: var(--sub); white-space: nowrap; }
+  .pick.set { box-shadow: 0 0 0 2px #007AFF; }
+  .pick.set b { color: var(--text); font-weight: 600; }
+  .pick input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; border: 0; margin: 0; padding: 0; -webkit-appearance: none; appearance: none; font-size: 16px; }
+  .preview.bad, .preview.bad b { color: var(--red); }
   .lbl { font-size: 13px; color: var(--sub); font-weight: 500; margin: 16px 4px 8px; }
   .preview { margin: 10px 4px 0; font-size: 14px; color: var(--sub); min-height: 21px; }
   .preview b { color: var(--text); font-weight: 600; }
@@ -154,7 +166,7 @@
 'use strict';
 // ------------------------------------------------------------------ מצב ושמירה מקומית
 var KEY = 'tazkorot-v1';
-var VERSION = '25.11.26-0817';                                   // מוחלף בזמן הפרסום, ונבדק מול version.txt
+var VERSION = '25.11.26-1142';                                   // מוחלף בזמן הפרסום, ונבדק מול version.txt
 var st = { items: {}, queue: [], v: 0, url: '' };
 try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) st = saved; } catch (e) {}
 var ui = { tab: 'open', q: '', online: null, busy: false, sheet: null };
@@ -372,36 +384,60 @@ function sheetEdit(id) {
 }
 
 function sheetAdd() {
-  var h = '<h2>תזכורת חדשה</h2><div class="subt">כתוב או הכתב בשפה חופשית, כולל המועד</div>' +
-    '<textarea id="nt" rows="3" placeholder="מחר ב-9 להתקשר לספק" enterkeyhint="done"></textarea><div class="preview" id="pv"></div>' +
+  var h = '<div class="shead"><h2>תזכורת חדשה</h2><button class="savetop" id="okTop" disabled>שמור</button></div>' +
+    '<textarea id="nt" rows="3" placeholder="מה להזכיר? אפשר גם לכתוב מועד: מחר ב-9 להתקשר לספק" enterkeyhint="done"></textarea><div class="preview" id="pv"></div>' +
+    '<div class="lbl">תאריך ושעה</div><div class="picks">' +
+    '<label class="pick" id="dBox"><i>📅</i><b id="dTxt">תאריך</b><input type="date" id="dIn"></label>' +
+    '<label class="pick" id="tBox"><i>🕒</i><b id="tTxt">שעה</b><input type="time" id="tIn"></label></div>' +
     '<div class="lbl">מועד מהיר</div><div class="grid">' +
     SNOOZE_KEYS.map(function (k) { return '<button data-k="' + k[0] + '">' + esc(k[1].replace(/‏/g, '')) + '</button>'; }).join('') + '</div>' +
-    '<button class="big b-blue" id="ok" disabled>הוסף</button>' +
-    '<div class="hint">דוגמאות: "בעוד שעתיים לבדוק מייל" · "כל יום ראשון ב-8:30 ישיבת צוות" · "כל 3 ימים להשקות" · "כל 1 לחודש דוח הוצאות"</div>';
+    '<button class="big b-blue" id="ok" disabled>שמור</button>' +
+    '<div class="hint">דוגמאות לכתיבה חופשית: "בעוד שעתיים לבדוק מייל" · "כל יום ראשון ב-8:30 ישיבת צוות" · "כל 3 ימים להשקות" · "כל 1 לחודש דוח הוצאות"</div>';
   openSheet(h, function (s) {
-    var nt = $('nt'), key = null, pr = null;
+    var nt = $('nt'), dIn = $('dIn'), tIn = $('tIn'), key = null, man = null, pr = null;      // key: כפתור מהיר. man: מועד שנבחר בלוח השנה / בשעון
+    var ymd = function (d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+    var hm = function (d) { return pad(d.getHours()) + ':' + pad(d.getMinutes()); };
+    var chosen = function () { return key ? quick(key, Date.now()) : man; };
+    dIn.min = ymd(new Date());
     var upd = function () {
-      var v = nt.value.trim();
-      pr = v ? parse(v, Date.now()) : null;
+      var v = nt.value.trim(), now = Date.now(), ch = chosen();
+      pr = v ? parse(v, now) : null;
       [].forEach.call(s.querySelectorAll('.grid button'), function (b) { b.classList.toggle('sel', b.dataset.k === key); });
-      $('ok').disabled = !v;
-      if (!v) return $('pv').innerHTML = '';
-      var due = key ? quick(key, Date.now()) : pr.due;
-      $('pv').innerHTML = '🗓 <b>' + fmt(due) + '</b>' + (pr.repeat ? ' · 🔁 <b>' + esc(fmtRepeat(pr.repeat)) + '</b>' : '') + (!pr.found && !key ? ' (לא כתבת מועד: בעוד שעה)' : '') +
-        (key && pr.found && !pr.repeat ? '<br>לפי הכפתור שבחרת. הטקסט נשמר כמו שכתבת' : '');
+      if (ch) { var d = new Date(ch); dIn.value = ymd(d); tIn.value = hm(d); } else { dIn.value = ''; tIn.value = ''; }
+      var df = ch ? dayDiff(ch, now) : 0, dd = ch ? new Date(ch) : null;
+      $('dTxt').textContent = !ch ? 'תאריך' : df === 0 ? 'היום' : df === 1 ? 'מחר' : 'יום ' + DAY_SHORT[dd.getDay()] + ' ' + dd.getDate() + '.' + (dd.getMonth() + 1);
+      $('tTxt').textContent = ch ? hm(dd) : 'שעה';
+      $('dBox').classList.toggle('set', !!ch); $('tBox').classList.toggle('set', !!ch);
+      var late = !!man && !key && man <= now;
+      $('ok').disabled = $('okTop').disabled = !v || late;
+      $('pv').classList.toggle('bad', late);
+      if (late) return $('pv').innerHTML = 'המועד שבחרת כבר עבר. בחר מועד אחר.';
+      if (!v) return $('pv').innerHTML = ch ? '🗓 <b>' + fmt(ch) + '</b>' : '';
+      var due = ch || pr.due;
+      $('pv').innerHTML = '🗓 <b>' + fmt(due) + '</b>' + (pr.repeat ? ' · 🔁 <b>' + esc(fmtRepeat(pr.repeat)) + '</b>' : '') + (!pr.found && !ch ? ' (לא בחרת מועד: בעוד שעה)' : '') +
+        (ch && pr.found && !pr.repeat ? '<br>לפי המועד שבחרת. הטקסט נשמר כמו שכתבת' : '');
     };
+    var picked = function () {                       // נבחר תאריך או שעה. מה שלא נבחר מושלם לבד
+      var d = dIn.value, t = tIn.value, now = new Date();
+      if (!d && !t) { man = null; key = null; return upd(); }
+      if (!t) { var x = new Date(Math.ceil((now.getTime() + 3600000) / 300000) * 300000); t = d === ymd(now) ? hm(x) : '09:00'; }
+      if (!d) { var c = new Date(ymd(now) + 'T' + t); if (c.getTime() <= now.getTime()) c = addDays(c, 1); d = ymd(c); }
+      man = new Date(d + 'T' + t).getTime(); key = null; upd();
+    };
+    dIn.onchange = picked; tIn.onchange = picked;
+    [dIn, tIn].forEach(function (i) { i.onclick = function () { try { if (i.showPicker) i.showPicker(); } catch (e) {} }; });
     nt.oninput = upd;
-    s.querySelector('.grid').onclick = function (e) { var b = e.target.closest('button'); if (!b) return; key = key === b.dataset.k ? null : b.dataset.k; upd(); };
+    s.querySelector('.grid').onclick = function (e) { var b = e.target.closest('button'); if (!b) return; key = key === b.dataset.k ? null : b.dataset.k; man = null; upd(); };
     var go = function () {
-      if (!pr) return;
-      var due = key ? quick(key, Date.now()) : pr.due;
-      var plain = key && !pr.repeat;              // בחרת כפתור: הוא המועד, והטקסט נשמר כמו שכתבת
+      upd();
+      if (!pr || $('ok').disabled) return;
+      var ch = chosen(), plain = ch && !pr.repeat;       // בחרת מועד: הוא קובע, והטקסט נשמר כמו שכתבת
       var text = plain ? nt.value.replace(/\s+/g, ' ').trim().replace(/[\s.,!?;:]+$/, '') : pr.text;
-      var it = act({ a: 'add', id: newId(), text: text || pr.text, due: due, repeat: plain ? '' : pr.repeat });
+      var it = act({ a: 'add', id: newId(), text: text || pr.text, due: ch || pr.due, repeat: plain ? '' : pr.repeat });
       closeSheet(); ui.tab = 'open'; [].forEach.call($('seg').children, function (c) { c.classList.toggle('on', c.dataset.tab === 'open'); }); render();
       toast('נקבע ל' + fmt(it.due) + ': ' + it.text, function () { act({ a: 'del', id: it.id }); });
     };
-    $('ok').onclick = go;
+    $('ok').onclick = go; $('okTop').onclick = go;
     nt.onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); go(); } };
     setTimeout(function () { nt.focus(); }, 60);
   });
