@@ -102,6 +102,15 @@
   .grid button { height: 48px; border-radius: 14px; background: #fff; font-weight: 500; font-size: 15px; box-shadow: 0 1px 3px rgba(0, 0, 0, .07); }
   .grid button:active, .acts button:active { background: #EDEDF0; }
   .grid button.sel { background: var(--text); color: #fff; }
+  .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 6px; }
+  .tiles.two { grid-template-columns: 1fr 1fr; }
+  .tiles button { height: 84px; border-radius: 18px; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; font-size: 15px; font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, .08); transition: transform .1s; }
+  .tiles button span { font-size: 26px; line-height: 1; }
+  .tiles button:active { transform: scale(.96); background: #EDEDF0; }
+  .tiles .pri { color: #fff; background: var(--text); box-shadow: 0 6px 16px rgba(0, 0, 0, .22); }
+  .tiles .pri span { font-size: 28px; font-weight: 700; }
+  .tiles .pri:active { background: #3A3A3C; }
+  .tiles .red { color: var(--red); }
   .acts { border-radius: 16px; overflow: hidden; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, .07); margin-top: 12px; }
   .acts button { display: flex; width: 100%; align-items: center; gap: 12px; height: 52px; padding: 0 16px; font-size: 16px; font-weight: 500; text-align: start; }
   .acts button + button { border-top: 1px solid rgba(60, 60, 67, .10); }
@@ -168,7 +177,7 @@
 'use strict';
 // ------------------------------------------------------------------ מצב ושמירה מקומית
 var KEY = 'tazkorot-v1';
-var VERSION = '25.11.26-1147';                                   // מוחלף בזמן הפרסום, ונבדק מול version.txt
+var VERSION = '26.11.26-1633';                                   // מוחלף בזמן הפרסום, ונבדק מול version.txt
 var st = { items: {}, queue: [], v: 0, url: '' };
 try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved) st = saved; } catch (e) {}
 var ui = { tab: 'open', q: '', online: null, busy: false, sheet: null };
@@ -335,12 +344,12 @@ function sheetItem(id) {
   var open = it.status === 'open';
   var sub = open ? fmt(it.due) + (it.repeat ? ' · 🔁 ' + fmtRepeat(it.repeat) : '') : (ST_LABEL[it.status] || '') + ' · ' + fmt(it.closedAt || it.updated);
   var acts = open
-    ? '<button data-a="done"><span>✅</span>בוצע</button><button data-a="snooze"><span>⏰</span>דחה למועד אחר</button>' +
+    ? '<button data-a="done" class="pri"><span>✓</span>בוצע</button><button data-a="snooze"><span>⏰</span>דחה</button>' +
       '<button data-a="mail"><span>📧</span>שלח לי מייל</button><button data-a="cal"><span>📅</span>קבע ביומן</button>' +
-      '<button data-a="edit"><span>✏️</span>ערוך טקסט</button><button data-a="del" class="red"><span>🗑</span>מחק</button>'
-    : '<button data-a="restore"><span>↩️</span>החזר לרשימה</button><button data-a="purge" class="red"><span>🗑</span>מחק מההיסטוריה</button>';
-  openSheet('<h2>' + esc(it.text) + '</h2><div class="subt">' + esc(sub) + '</div><div class="acts">' + acts + '</div>', function (s) {
-    s.querySelector('.acts').onclick = function (e) {
+      '<button data-a="edit"><span>✏️</span>ערוך</button><button data-a="del" class="red"><span>🗑</span>מחק</button>'
+    : '<button data-a="restore" class="pri"><span>↩️</span>החזר לרשימה</button><button data-a="purge" class="red"><span>🗑</span>מחק מההיסטוריה</button>';
+  openSheet('<h2>' + esc(it.text) + '</h2><div class="subt">' + esc(sub) + '</div><div class="tiles' + (open ? '' : ' two') + '">' + acts + '</div>', function (s) {
+    s.querySelector('.tiles').onclick = function (e) {
       var b = e.target.closest('button'); if (!b) return;
       var a = b.dataset.a;
       if (a === 'snooze' || a === 'cal' || a === 'restore') return sheetTime(id, a);
